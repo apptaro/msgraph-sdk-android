@@ -55,3 +55,7 @@ proguard/
 *.iws
 
 .DS_Store
+.project
+.classpath
+.settings
+target
