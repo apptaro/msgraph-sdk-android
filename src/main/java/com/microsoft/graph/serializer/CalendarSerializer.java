@@ -21,8 +21,6 @@
 // ------------------------------------------------------------------------------
 
 package com.microsoft.graph.serializer;
-import android.annotation.SuppressLint;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -83,7 +81,6 @@ public final class CalendarSerializer {
             datePattern = "yyyy-MM-dd'T'HH:mm:ss" + zSuffix;
         }
 
-        @SuppressLint("SimpleDateFormat")
         final SimpleDateFormat dateFormat = new SimpleDateFormat(datePattern);
         dateFormat.setTimeZone(TimeZone.getDefault());
 

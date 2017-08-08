@@ -22,85 +22,35 @@
 
 package com.microsoft.graph.logger;
 
-import android.util.Log;
-
 /**
  * The default logger for the service client, which writes to logcat.
  */
 public class DefaultLogger implements ILogger {
 
-    /**
-     * The logging level.
-     */
-    private LoggerLevel mLevel = LoggerLevel.Error;
+    private static ILogger logger = new SysoutLogger();
 
-    /**
-     * Sets the logging level of this logger.
-     * @param level The level to log at.
-     */
-    public void setLoggingLevel(final LoggerLevel level) {
-        Log.i(getTag(), "Setting logging level to " + level);
-        mLevel = level;
+    public static void set(ILogger l) {
+        logger = l;
     }
 
-    /**
-     * Gets the logging level of this logger.
-     * @return The level the logger is set to.
-     */
+    @Override
+    public void setLoggingLevel(LoggerLevel level) {
+        logger.setLoggingLevel(level);
+    }
+
+    @Override
     public LoggerLevel getLoggingLevel() {
-        return mLevel;
+        return logger.getLoggingLevel();
     }
 
-    /**
-     * Creates the tag automatically.
-     * @return The tag for the current method.
-     * Sourced from https://gist.github.com/eefret/a9c7ac052854a10a8936
-     */
-    private String getTag() {
-        try {
-            final StringBuilder sb = new StringBuilder();
-            final int callerStackDepth = 4;
-            final String className = Thread.currentThread().getStackTrace()[callerStackDepth].getClassName();
-            sb.append(className.substring(className.lastIndexOf(".") + 1));
-            sb.append("[");
-            sb.append(Thread.currentThread().getStackTrace()[callerStackDepth].getMethodName());
-            sb.append("] - ");
-            sb.append(Thread.currentThread().getStackTrace()[callerStackDepth].getLineNumber());
-            return sb.toString();
-        } catch (final Exception ex) {
-            Log.e("DefaultLogger", ex.getMessage());
-        }
-        return null;
-    }
-
-    /**
-     * Logs a debug message.
-     * @param message The message.
-     */
     @Override
-    public void logDebug(final String message) {
-
-                for (final String line : message.split("\n")) {
-                    Log.d(getTag(), line);
-                }
-
+    public void logDebug(String message) {
+        logger.logDebug(message);
     }
 
-    /**
-     * Logs an error message with throwable.
-     * @param message The message.
-     * @param throwable The throwable.
-     */
     @Override
-    public void logError(final String message, final Throwable throwable) {
-        switch (mLevel) {
-            default:
-            case Debug:
-            case Error:
-                for (final String line : message.split("\n")) {
-                    Log.e(getTag(), line);
-                }
-                Log.e(getTag(), "Throwable detail: ", throwable);
-        }
+    public void logError(String message, Throwable throwable) {
+        logger.logError(message, throwable);
     }
+
 }
