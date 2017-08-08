@@ -33,105 +33,38 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public class DefaultExecutors implements IExecutors {
 
-    /**
-     * The executor for handling background actions.
-     */
-    private final ThreadPoolExecutor mBackgroundExecutor;
+    private static IExecutors executors;
 
-    /**
-     * The executor for handling foreground actions.
-     */
-    private final SynchronousExecutor mForegroundExecutor;
-
-    /**
-     * The logger.
-     */
-    private final ILogger mLogger;
-
-    /**
-     * Creates a new instance of the DefaultExecutors.
-     * @param logger The logger.
-     */
-    public DefaultExecutors(final ILogger logger) {
-        mLogger = logger;
-        mBackgroundExecutor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
-        mForegroundExecutor = new SynchronousExecutor();
+    public DefaultExecutors(ILogger logger) {
+        //TODO use logger?
     }
 
-    /**
-     * Runs the given Runnable on the background thread.
-     * @param runnable The Runnable to execute.
-     */
+    public static void set(IExecutors executors) {
+        DefaultExecutors.executors = executors;
+    }
+    
+    public static IExecutors get() {
+        return executors;
+    }
+
     @Override
-    public void performOnBackground(final Runnable runnable) {
-        mLogger.logDebug("Starting background task, current active count: "
-                         + mBackgroundExecutor.getActiveCount());
-        mBackgroundExecutor.execute(runnable);
+    public void performOnBackground(Runnable runnable) {
+        executors.performOnBackground(runnable);
     }
 
-    /**
-     * Performs the given callback with the result object.
-     * @param result The result value.
-     * @param callback The callback to call on the foreground with this result.
-     * @param <Result> The result type.
-     */
     @Override
-    public <Result> void performOnForeground(final Result result,
-                                             final ICallback<Result> callback) {
-        mLogger.logDebug("Starting foreground task, current active count:"
-                         + mForegroundExecutor.getActiveCount()
-                         + ", with result "
-                         + result);
-        mForegroundExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                callback.success(result);
-            }
-        });
+    public <Result> void performOnForeground(Result result, ICallback<Result> callback) {
+        executors.performOnForeground(result, callback);
     }
 
-    /**
-     * Performs the given callback with the result object.
-     * @param progress The progress value.
-     * @param progressMax The progress value.
-     * @param callback The callback to call on the foreground with this result.
-     * @param <Result> The result type.
-     */
-    public <Result> void performOnForeground(final int progress,
-                                             final int progressMax,
-                                             final IProgressCallback<Result> callback) {
-        mLogger.logDebug("Starting foreground task, current active count:"
-                         + mForegroundExecutor.getActiveCount()
-                         + ", with progress  "
-                         + progress
-                         + ", max progress"
-                         + progressMax);
-        mForegroundExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                callback.progress(progress, progressMax);
-            }
-        });
-    }
-    /**
-     * Performs the given callback with the exception object.
-     * @param exception The exception value.
-     * @param callback The callback to call on the foreground with this exception.
-     * @param <Result> The result type.
-     */
     @Override
-    public <Result> void performOnForeground(final ClientException exception,
-                                             final ICallback<Result> callback) {
-        mLogger.logDebug("Starting foreground task, current active count:"
-                         + mForegroundExecutor.getActiveCount()
-                         + ", with exception "
-                         + exception);
-        mForegroundExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                callback.failure(exception);
-            }
-        });
+    public <Result> void performOnForeground(int progress, int progressMax, IProgressCallback<Result> callback) {
+        executors.performOnForeground(progress, progressMax, callback);
+    }
+
+    @Override
+    public <Result> void performOnForeground(ClientException exception, ICallback<Result> callback) {
+        executors.performOnForeground(exception, callback);
     }
 
 }

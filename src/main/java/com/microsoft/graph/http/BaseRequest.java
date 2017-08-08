@@ -22,24 +22,25 @@
 
 package com.microsoft.graph.http;
 
-import android.net.Uri;
-
-import com.microsoft.graph.concurrency.ICallback;
-import com.microsoft.graph.core.IBaseClient;
-import com.microsoft.graph.core.GraphErrorCodes;
-import com.microsoft.graph.options.FunctionOption;
-import com.microsoft.graph.options.QueryOption;
-import com.microsoft.graph.BuildConfig;
-import com.microsoft.graph.core.ClientException;
-import com.microsoft.graph.options.HeaderOption;
-import com.microsoft.graph.options.Option;
-
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.apache.http.client.utils.URIBuilder;
+
+import com.microsoft.graph.concurrency.ICallback;
+import com.microsoft.graph.core.ClientException;
+import com.microsoft.graph.core.GraphErrorCodes;
+import com.microsoft.graph.core.IBaseClient;
+import com.microsoft.graph.options.FunctionOption;
+import com.microsoft.graph.options.HeaderOption;
+import com.microsoft.graph.options.Option;
+import com.microsoft.graph.options.QueryOption;
 
 /**
  * An http request.
@@ -54,7 +55,10 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * The request stats header value format string.
      */
-    public static final String REQUEST_STATS_HEADER_VALUE_FORMAT_STRING = "graph-android-v%s";
+    public static final String REQUEST_STATS_HEADER_VALUE_FORMAT_STRING = "graph-java-v%s";
+
+    // TODO
+    private static final String VERSION_NAME = "0.1";
 
     /**
      * The http method for this request.
@@ -99,15 +103,17 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * Create the request.
      *
-     * @param requestUrl    The url to make the request against.
-     * @param client        The client which can issue the request.
-     * @param options       The options for this request.
-     * @param responseClass The class for the response.
+     * @param requestUrl
+     *            The url to make the request against.
+     * @param client
+     *            The client which can issue the request.
+     * @param options
+     *            The options for this request.
+     * @param responseClass
+     *            The class for the response.
      */
-    public BaseRequest(final String requestUrl,
-                       final IBaseClient client,
-                       final List<Option> options,
-                       final Class responseClass) {
+    public BaseRequest(final String requestUrl, final IBaseClient client, final List<Option> options,
+            final Class responseClass) {
         mRequestUrl = requestUrl;
         mClient = client;
         mResponseClass = responseClass;
@@ -131,7 +137,7 @@ public abstract class BaseRequest implements IHttpRequest {
             }
         }
         final HeaderOption requestStatsHeader = new HeaderOption(REQUEST_STATS_HEADER_NAME,
-                String.format(REQUEST_STATS_HEADER_VALUE_FORMAT_STRING, BuildConfig.VERSION_NAME));
+                String.format(REQUEST_STATS_HEADER_VALUE_FORMAT_STRING, VERSION_NAME));
         mHeadersOptions.add(requestStatsHeader);
     }
 
@@ -142,17 +148,17 @@ public abstract class BaseRequest implements IHttpRequest {
      */
     @Override
     public URL getRequestUrl() {
-        String requestUrl = addFunctionParameters();
-        Uri baseUrl = Uri.parse(requestUrl);
-        final Uri.Builder uriBuilder = baseUrl.buildUpon();
+        final String requestUrl = addFunctionParameters();
+        final URI baseUrl = URI.create(requestUrl);
+        final URIBuilder uriBuilder = new URIBuilder(baseUrl);
 
         for (final QueryOption option : mQueryOptions) {
-            uriBuilder.appendQueryParameter(option.getName(), option.getValue().toString());
+            uriBuilder.addParameter(option.getName(), option.getValue().toString());
         }
 
         try {
-            return new URL(uriBuilder.toString());
-        } catch (final MalformedURLException e) {
+            return uriBuilder.build().toURL();
+        } catch (final MalformedURLException | URISyntaxException e) {
             throw new ClientException("Invalid URL: " + uriBuilder.toString(), e, GraphErrorCodes.InvalidRequest);
         }
     }
@@ -210,8 +216,10 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * Adds a header to this request.
      *
-     * @param header The name of the header.
-     * @param value  The value of the header.
+     * @param header
+     *            The name of the header.
+     * @param value
+     *            The value of the header.
      */
     @Override
     public void addHeader(final String header, final String value) {
@@ -221,7 +229,8 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * Sets useCaches parameter to cache the response.
      *
-     * @param useCaches The value of useCaches.
+     * @param useCaches
+     *            The value of useCaches.
      */
     @Override
     public void setUseCaches(boolean useCaches) {
@@ -241,16 +250,19 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * Sends this request.
      *
-     * @param method           The http method.
-     * @param callback         The callback when this request complements.
-     * @param serializedObject The object to serialize as the body.
-     * @param <T1>             The type of the callback result.
-     * @param <T2>             The type of the serialized body.
+     * @param method
+     *            The http method.
+     * @param callback
+     *            The callback when this request complements.
+     * @param serializedObject
+     *            The object to serialize as the body.
+     * @param <T1>
+     *            The type of the callback result.
+     * @param <T2>
+     *            The type of the serialized body.
      */
     @SuppressWarnings("unchecked")
-    protected <T1, T2> void send(final HttpMethod method,
-                                 final ICallback<T1> callback,
-                                 final T2 serializedObject) {
+    protected <T1, T2> void send(final HttpMethod method, final ICallback<T1> callback, final T2 serializedObject) {
         mMethod = method;
         mClient.getHttpProvider().send(this, callback, mResponseClass, serializedObject);
     }
@@ -258,16 +270,21 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * Sends this request.
      *
-     * @param method           The http method.
-     * @param serializedObject The object to serialize as the body.
-     * @param <T1>             The type of the callback result.
-     * @param <T2>             The type of the serialized body.
+     * @param method
+     *            The http method.
+     * @param serializedObject
+     *            The object to serialize as the body.
+     * @param <T1>
+     *            The type of the callback result.
+     * @param <T2>
+     *            The type of the serialized body.
      * @return The response object.
-     * @throws ClientException An exception occurs if there was an error while the request was sent.
+     * @throws ClientException
+     *             An exception occurs if there was an error while the request was
+     *             sent.
      */
     @SuppressWarnings("unchecked")
-    protected <T1, T2> T1 send(final HttpMethod method,
-                               final T2 serializedObject) throws ClientException {
+    protected <T1, T2> T1 send(final HttpMethod method, final T2 serializedObject) throws ClientException {
         mMethod = method;
         return (T1) mClient.getHttpProvider().send(this, mResponseClass, serializedObject);
     }
@@ -295,6 +312,7 @@ public abstract class BaseRequest implements IHttpRequest {
      *
      * @return The full list of options for this request.
      */
+    @Override
     public List<Option> getOptions() {
         final LinkedList<Option> list = new LinkedList<>();
         list.addAll(mHeadersOptions);
@@ -306,7 +324,8 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * Adds a query option.
      *
-     * @param option The query option to add.
+     * @param option
+     *            The query option to add.
      */
     public void addQueryOption(final QueryOption option) {
         getQueryOptions().add(option);
@@ -315,7 +334,8 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * Adds a function option.
      *
-     * @param option The function option to add.
+     * @param option
+     *            The function option to add.
      */
     public void addFunctionOption(final FunctionOption option) {
         getFunctionOptions().add(option);
@@ -324,7 +344,8 @@ public abstract class BaseRequest implements IHttpRequest {
     /**
      * Sets the http method.
      *
-     * @param httpMethod The http method.
+     * @param httpMethod
+     *            The http method.
      */
     public void setHttpMethod(final HttpMethod httpMethod) {
         mMethod = httpMethod;

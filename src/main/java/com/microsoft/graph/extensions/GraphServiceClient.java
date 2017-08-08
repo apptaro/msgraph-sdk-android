@@ -17,7 +17,6 @@ import java.util.EnumSet;
 
 import com.microsoft.graph.authentication.*;
 import com.microsoft.graph.logger.*;
-import android.app.Activity;
 
 // This file is available for extending, afterwards please submit a pull request.
 
