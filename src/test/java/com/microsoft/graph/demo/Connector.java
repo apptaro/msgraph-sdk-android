@@ -1,4 +1,12 @@
-package au.gov.amsa;
+package com.microsoft.graph.demo;
+
+import org.apache.oltu.oauth2.client.OAuthClient;
+import org.apache.oltu.oauth2.client.URLConnectionClient;
+import org.apache.oltu.oauth2.client.request.OAuthClientRequest;
+import org.apache.oltu.oauth2.common.OAuthProviderType;
+import org.apache.oltu.oauth2.common.exception.OAuthProblemException;
+import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
+import org.apache.oltu.oauth2.common.message.types.GrantType;
 
 import com.microsoft.graph.authentication.IAuthenticationProvider;
 import com.microsoft.graph.concurrency.DefaultExecutors;
@@ -7,30 +15,13 @@ import com.microsoft.graph.concurrency.IExecutors;
 import com.microsoft.graph.concurrency.IProgressCallback;
 import com.microsoft.graph.core.ClientException;
 import com.microsoft.graph.core.DefaultClientConfig;
+import com.microsoft.graph.core.GraphErrorCodes;
 import com.microsoft.graph.core.IClientConfig;
 import com.microsoft.graph.extensions.GraphServiceClient;
 import com.microsoft.graph.extensions.IGraphServiceClient;
 import com.microsoft.graph.http.IHttpRequest;
 
 public class Connector {
-
-    private IAuthenticationProvider authenticationProvider() {
-        return new IAuthenticationProvider() {
-
-            @Override
-            public void authenticateRequest(IHttpRequest request) {
-                request.addHeader("Authorization", "Bearer " + getAccessToken());
-            }
-
-            private String getAccessToken() {
-                
-                //use the 
-                // TODO implement
-                return "boo";
-            }
-
-        };
-    }
 
     public void connect() {
         DefaultExecutors.set(createExecutors());
@@ -73,9 +64,33 @@ public class Connector {
         };
     }
     
+    private IAuthenticationProvider authenticationProvider() {
+        final String code = "somecode";
+        try {
+            final OAuthClientRequest request = OAuthClientRequest //
+                    .tokenProvider(OAuthProviderType.MICROSOFT) //
+                    .setGrantType(GrantType.AUTHORIZATION_CODE) //
+                    .setClientId("your-msgraph-application-client-id") //
+                    .setClientSecret("your-msgraph-application-client-secret") //
+                    .setCode(code) //
+                    .buildQueryMessage();
+
+            final OAuthClient client = new OAuthClient(new URLConnectionClient());
+            final String accessToken = client.accessToken(request).getAccessToken();
+            return new IAuthenticationProvider() {
+
+                @Override
+                public void authenticateRequest(IHttpRequest request) {
+                    request.addHeader("Authorization", "Bearer " + accessToken);
+                }
+            };
+        } catch (final OAuthSystemException | OAuthProblemException e) {
+            throw new ClientException(e.getMessage(), e, GraphErrorCodes.AuthenticationFailure);
+        }
+    }
+
     public static void main(String[] args) {
         new Connector().connect();
     }
-    
 
 }
