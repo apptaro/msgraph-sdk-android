@@ -23,10 +23,10 @@ import com.microsoft.graph.http.IHttpRequest;
 
 public class Connector {
 
-    public void connect() {
+    public void connect(String clientId, String clientSecret) {
         DefaultExecutors.set(createExecutors());
         final IClientConfig clientConfig = DefaultClientConfig
-                .createWithAuthenticationProvider(authenticationProvider());
+                .createWithAuthenticationProvider(authenticationProvider(clientId, clientSecret));
 
         final IGraphServiceClient client = new GraphServiceClient.Builder() //
                 .fromConfig(clientConfig) //
@@ -63,16 +63,15 @@ public class Connector {
             }
         };
     }
-    
-    private IAuthenticationProvider authenticationProvider() {
-        final String code = "somecode";
+
+    private IAuthenticationProvider authenticationProvider(String clientId, String clientSecret) {
         try {
+            
             final OAuthClientRequest request = OAuthClientRequest //
-                    .tokenProvider(OAuthProviderType.MICROSOFT) //
+                    .tokenLocation("https://login.microsoftonline.com/common/oauth2/v2.0/token") //
                     .setGrantType(GrantType.AUTHORIZATION_CODE) //
-                    .setClientId("your-msgraph-application-client-id") //
-                    .setClientSecret("your-msgraph-application-client-secret") //
-                    .setCode(code) //
+                    .setClientId(clientId) //
+                    .setClientSecret(clientSecret) //
                     .buildQueryMessage();
 
             final OAuthClient client = new OAuthClient(new URLConnectionClient());
@@ -82,6 +81,7 @@ public class Connector {
                 @Override
                 public void authenticateRequest(IHttpRequest request) {
                     request.addHeader("Authorization", "Bearer " + accessToken);
+//                    request.addHeader("Content-Length", "0");
                 }
             };
         } catch (final OAuthSystemException | OAuthProblemException e) {
@@ -90,7 +90,9 @@ public class Connector {
     }
 
     public static void main(String[] args) {
-        new Connector().connect();
+        final String clientId = System.getProperty("clientId");
+        final String clientSecret = System.getProperty("clientSecret");
+        new Connector().connect(clientId, clientSecret);
     }
 
 }
